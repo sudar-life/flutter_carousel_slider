@@ -41,6 +41,7 @@ class CarouselDemo extends StatelessWidget {
             '/reason': (ctx) => CarouselChangeReasonDemo(),
             '/position': (ctx) => KeepPageviewPositionDemo(),
             '/multiple': (ctx) => MultipleItemDemo(),
+            '/scaleChange': (ctx) => ScaleChangeWidget(),
           },
         );
       },
@@ -96,6 +97,7 @@ class CarouselDemoHome extends StatelessWidget {
           DemoItem('Carousel change reason demo', '/reason'),
           DemoItem('Keep pageview position demo', '/position'),
           DemoItem('Multiple item in one screen demo', '/multiple'),
+          DemoItem('scaleChange demo', '/scaleChange'),
         ],
       ),
     );
@@ -638,5 +640,211 @@ class MultipleItemDemo extends StatelessWidget {
         },
       )),
     );
+  }
+}
+
+class ScaleChangeWidget extends StatefulWidget {
+  ScaleChangeWidget({Key? key}) : super(key: key);
+
+  @override
+  _ScaleChangeWidgetState createState() => _ScaleChangeWidgetState();
+}
+
+/// This is the private State class that goes with MyStatefulWidget.
+/// AnimationControllers can be created with `vsync: this` because of TickerProviderStateMixin.
+class _ScaleChangeWidgetState extends State<ScaleChangeWidget>
+    with TickerProviderStateMixin {
+  final TransformationController _transformationController =
+      TransformationController();
+  Animation<Matrix4>? _animationReset;
+  late AnimationController _controllerReset;
+
+  void _onAnimateReset() {
+    _transformationController.value = _animationReset!.value;
+    if (!_controllerReset.isAnimating) {
+      _animationReset!.removeListener(_onAnimateReset);
+      _animationReset = null;
+      _controllerReset.reset();
+    }
+  }
+
+  void _animateResetInitialize() {
+    _controllerReset.reset();
+    _animationReset = Matrix4Tween(
+      begin: _transformationController.value,
+      end: Matrix4.identity(),
+    ).animate(_controllerReset);
+    _animationReset!.addListener(_onAnimateReset);
+    _controllerReset.forward();
+  }
+
+// Stop a running reset to home transform animation.
+  void _animateResetStop() {
+    _controllerReset.stop();
+    _animationReset?.removeListener(_onAnimateReset);
+    _animationReset = null;
+    _controllerReset.reset();
+  }
+
+  void _onInteractionStart(ScaleStartDetails details) {
+    // If the user tries to cause a transformation while the reset animation is
+    // running, cancel the reset animation.
+    if (_controllerReset.status == AnimationStatus.forward) {
+      _animateResetStop();
+    }
+  }
+
+  void _onInteractionEnd(ScaleEndDetails details) {
+    _animateResetInitialize();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerReset = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controllerReset.dispose();
+    super.dispose();
+  }
+
+  void _onScaleEnd(ScaleEndDetails details) {}
+  void _onScaleStart(ScaleStartDetails details) {}
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    print(details);
+  }
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     appBar: AppBar(
+  //       automaticallyImplyLeading: false,
+  //       title: const Text('Controller demo'),
+  //     ),
+  //     body: Container(
+  //       child: CarouselSlider(
+  //         options: CarouselOptions(),
+  //         items: imgList
+  //             .map((item) => GestureDetector(
+  //                   onScaleEnd: _onScaleEnd,
+  //                   onScaleStart: _onScaleStart,
+  //                   onScaleUpdate: _onScaleUpdate,
+  //                   child: Container(
+  //                     child: Center(
+  //                       child: InteractiveViewer(
+  //                           boundaryMargin: EdgeInsets.all(double.infinity),
+  //                           transformationController: _transformationController,
+  //                           minScale: 1.0,
+  //                           maxScale: 2.5,
+  //                           onInteractionStart: _onInteractionStart,
+  //                           onInteractionEnd: _onInteractionEnd,
+  //                           child: Image.network(
+  //                             "https://picsum.photos/250?image=9",
+  //                             width: MediaQuery.of(context).size.width,
+  //                             height: MediaQuery.of(context).size.height,
+  //                           )),
+  //                     ),
+  //                   ),
+  //                 ))
+  //             .toList(),
+  //       ),
+  //     ),
+  //   );
+  // }
+  double size = 100;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height,
+      color: Colors.black.withOpacity(0.5),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 50,
+            left: 0,
+            right: 0,
+            child: CarouselSlider(
+              options: CarouselOptions(
+                height: MediaQuery.of(context).size.height * 0.7,
+                viewportFraction: 0.99,
+                aspectRatio: 0,
+                enlargeCenterPage: false,
+                scrollDirection: Axis.horizontal,
+                autoPlay: false,
+                autoPlayInterval: const Duration(seconds: 3),
+                enableInfiniteScroll: true,
+                disableCenter: true,
+                onScrolled: (value) {},
+                onPageChanged: (int index, _) {},
+              ),
+              items: imgList
+                  .map((item) => InteractiveViewer(
+                        boundaryMargin: EdgeInsets.all(double.infinity),
+                        transformationController: _transformationController,
+                        minScale: 1.0,
+                        maxScale: 2.5,
+                        onInteractionStart: _onInteractionStart,
+                        onInteractionEnd: _onInteractionEnd,
+                        child: Image.network(
+                          "https://picsum.photos/250?image=9",
+                          width: MediaQuery.of(context).size.width,
+                          height: MediaQuery.of(context).size.height,
+                        ),
+                      ))
+                  // Container(
+                  //       child: Center(
+                  //           child: Image.network(item,
+                  //               fit: BoxFit.cover, width: 1000)),
+                  //     ))
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+    // return Scaffold(
+    //   appBar: AppBar(title: Text('Size Example')),
+    //   body: Container(
+    //       child: CarouselSlider(
+    //     options: CarouselOptions(),
+    //     items: imgList
+    //         .map(
+    //           (item) => Stack(
+    //             children: [
+    //               InteractiveViewer(
+    //                 boundaryMargin: EdgeInsets.all(double.infinity),
+    //                 transformationController: _transformationController,
+    //                 minScale: 1.0,
+    //                 maxScale: 2.5,
+    //                 onInteractionStart: _onInteractionStart,
+    //                 onInteractionEnd: _onInteractionEnd,
+    //                 child: Image.network(
+    //                   "https://picsum.photos/250?image=9",
+    //                   width: MediaQuery.of(context).size.width,
+    //                   height: MediaQuery.of(context).size.height,
+    //                 ),
+    //               ),
+    //             ],
+    //           ),
+    //         )
+    //         .toList(),
+    //   )
+    //       // child: Container(
+    //       //   height: size,
+    //       //   width: size,
+    //       //   color: Colors.blue,
+    //       //   child: Image.network(
+    //       //     "https://picsum.photos/250?image=9",
+    //       //     width: MediaQuery.of(context).size.width,
+    //       //     height: MediaQuery.of(context).size.height,
+    //       //   ),
+    //       // ),
+    //       ),
+    // );
   }
 }

@@ -185,26 +185,7 @@ class CarouselSliderState extends State<CarouselSlider>
           AspectRatio(aspectRatio: widget.options.aspectRatio, child: child);
     }
 
-    return RawGestureDetector(
-      gestures: {
-        _MultipleGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<_MultipleGestureRecognizer>(
-                () => _MultipleGestureRecognizer(),
-                (_MultipleGestureRecognizer instance) {
-          instance.onStart = (_) {
-            onStart();
-          };
-          instance.onDown = (_) {
-            onPanDown();
-          };
-          instance.onEnd = (_) {
-            onPanUp();
-          };
-          instance.onCancel = () {
-            onPanUp();
-          };
-        }),
-      },
+    return GestureDetector(
       child: NotificationListener(
         onNotification: (dynamic notification) {
           if (widget.options.onScrolled != null &&
@@ -215,6 +196,8 @@ class CarouselSliderState extends State<CarouselSlider>
         },
         child: wrapper,
       ),
+      behavior: HitTestBehavior.opaque,
+      dragStartBehavior: DragStartBehavior.start,
     );
   }
 
